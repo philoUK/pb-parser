@@ -1,5 +1,6 @@
 namespace ParserLibTests
 {
+    using System;
     using System.Linq;
     using ParserLib;
     using Xunit;
@@ -172,31 +173,30 @@ namespace ParserLibTests
             Assert.Equal("Should", results.Value);
         }
 
+        [InlineData(" ")]
+        [InlineData("\t")]
+        [Theory]
+        public void Whitespace_CorrectInput_Succeeds(string input)
+        {
+            var sut = Parse.Whitespace();
+            var results = sut(new Input(input));
+            Assert.True(results.WasSuccessful);
+        }
+
         [Fact]
         public void String_SpecificationMatched_Succeeds()
         {
-            var spec = Parse.Letter().Then<char, string>(letter =>
-            {
-                return i =>
-                {
-                    var rhs = Parse.LetterOrDigit().ZeroOrMore()(i);
-                    if (rhs.WasSuccessful)
-                    {
-                        return Result.Success(
-                            letter.ToString() +
-                             string.Concat(rhs.Value),
-                             rhs.Remainder
-                        );
-                    }
-                    return Result.Fail<string>(i,
-                        "Expected [A-Z][a-z][0-9]*",
-                        Enumerable.Empty<string>());
-                };
-            }, "Expected Identifier [A-Za-z][A-Za-z0-9]*");
+            var specification2 =
+                from letter in Parse.Letter()
+                from remainder in Parse.LetterOrDigit().ZeroOrMore()
+                    .String()
+                select letter.ToString() +
+                    remainder;
+
             // fail the spec
-            var wrongResult = spec(new Input("0id"));
+            var wrongResult = specification2(new Input("0id"));
             Assert.False(wrongResult.WasSuccessful);
-            var rightResult = spec(new Input("id0"));
+            var rightResult = specification2(new Input("id0"));
             Assert.True(rightResult.WasSuccessful);
             Assert.Equal("id0", rightResult.Value);
         }

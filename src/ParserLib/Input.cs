@@ -8,6 +8,8 @@ namespace ParserLib
         CurrentChar CurrentValue();
         bool HasValue();
         bool IsEof();
+
+        int Position { get; }
     }
 
     public class Input : IInput
@@ -35,6 +37,8 @@ namespace ParserLib
         public bool IsEof() => this.internalPosition >= (this.source ?? string.Empty).Length;
 
         public bool HasValue() => !this.IsEof();
+
+        public int Position => this.internalPosition;
 
         public CurrentChar CurrentValue()
         {

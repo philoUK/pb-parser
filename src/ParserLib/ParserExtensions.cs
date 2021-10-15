@@ -64,17 +64,75 @@ namespace ParserLib
             };
         }
 
-        public static Parser<U> Then<T, U>(this Parser<T> lhs, Func<T, Parser<U>> func, string msg)
+        public static Parser<U> Then<T, U>(this Parser<T> lhs, Func<T, Parser<U>> func)
         {
-            return input =>
+            return input => lhs(input)
+                .IfSuccess(lhsResult =>
+                    func(lhsResult.Value)
+                    (lhsResult.Remainder));
+        }
+
+        public static Parser<T> Or<T>(this Parser<T> lhs, Parser<T> rhs)
+        {
+            if (lhs == null)
             {
-                var results = lhs(input);
-                if (results.WasSuccessful)
+                throw new ArgumentNullException(nameof(lhs));
+            }
+
+            if (rhs == null)
+            {
+                throw new ArgumentNullException(nameof(rhs));
+            }
+
+            return i =>
+            {
+                var lhsResult = lhs(i);
+                if (!lhsResult.WasSuccessful)
                 {
-                    return func(results.Value)(results.Remainder);
+                    return rhs(i).IfFailure(rhsResult =>
+                        DetermineBestError(lhsResult, rhsResult));
                 }
-                return Result.Fail<U>(input, msg, Enumerable.Empty<string>());
+                return lhsResult;
             };
+        }
+
+        private static IResult<T> DetermineBestError<T>(IResult<T> lhs, IResult<T> rhs)
+        {
+            if (rhs.Remainder.Position > lhs.Remainder.Position)
+            {
+                return rhs;
+            }
+            if (lhs.Remainder.Position > rhs.Remainder.Position)
+            {
+                return lhs;
+            }
+            return Result.Fail<T>(lhs.Remainder, lhs.Message,
+                lhs.Expectations.Union(rhs.Expectations));
+        }
+
+        public static Parser<U> Select<T, U>(this Parser<T> lhs, Func<T, U> convert)
+        {
+            if (lhs == null)
+            {
+                throw new ArgumentNullException(nameof(lhs));
+            }
+            if (convert == null)
+            {
+                throw new ArgumentNullException(nameof(convert));
+            }
+            return lhs.Then(v => Parse.Return(convert(v)));
+        }
+
+        public static Parser<V> SelectMany<T, U, V>(
+            this Parser<T> parser,
+            Func<T, Parser<U>> selector,
+            Func<T, U, V> projector)
+        {
+            if (parser == null) throw new ArgumentNullException(nameof(parser));
+            if (selector == null) throw new ArgumentNullException(nameof(selector));
+            if (projector == null) throw new ArgumentNullException(nameof(projector));
+
+            return parser.Then(t => selector(t).Select(u => projector(t, u)));
         }
     }
 }

@@ -53,6 +53,11 @@ namespace ParserLib
             return Char(c => char.IsLetterOrDigit(c), "Letter or digit");
         }
 
+        public static Parser<char> Whitespace()
+        {
+            return Char(c => char.IsWhiteSpace(c), "Whitespace");
+        }
+
         public static Parser<char> AnyChar()
         {
             return Char(c => true, "Any char");
@@ -63,6 +68,33 @@ namespace ParserLib
             return Char(c => char.ToLowerInvariant(c) == char.ToLowerInvariant(ch), $"{char.ToUpperInvariant(ch)} or {char.ToLowerInvariant(ch)}");
         }
 
+        public static Parser<char> AnyCharExcept(char ch)
+        {
+            return Char(c => c != ch, $"Char should not = {ch}");
+        }
+
+        public static Parser<string> Text(string s)
+        {
+            return i =>
+            {
+                var currentInput = i;
+                foreach (var ch in s)
+                {
+                    var results = Char(ch)(currentInput);
+                    if (results.WasSuccessful)
+                    {
+                        currentInput = results.Remainder;
+                    }
+                    else
+                    {
+                        return Result.Fail<string>(i,
+                        $"Expected string of {s}",
+                        Enumerable.Empty<string>());
+                    }
+                }
+                return Result.Success(s, currentInput);
+            };
+        }
         public static Parser<string> String(this Parser<IEnumerable<char>> lhs)
         {
             return input =>
