@@ -114,5 +114,11 @@ namespace ParserLib
                 }
             };
         }
+
+        public static Parser<long> Numeric(this Parser<IEnumerable<char>> lhs)
+        {
+            return from numberString in lhs.String()
+                   select long.Parse(numberString);
+        }
     }
 }
