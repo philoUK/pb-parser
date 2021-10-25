@@ -6,5 +6,10 @@ namespace ParserLib
         {
             return i => Result.Success(value, i);
         }
+
+        public static DeferredParser<T> Defer<T>()
+        {
+            return new DeferredParser<T>();
+        }
     }
 }

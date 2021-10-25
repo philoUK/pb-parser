@@ -115,6 +115,19 @@ namespace ParserLib
             };
         }
 
+        public static Parser<string> Token(this Parser<string> lhs)
+        {
+            return input =>
+            {
+                var results = lhs(input);
+                if (results.WasSuccessful)
+                {
+                    return Result.Success(results.Value.Trim(), results.Remainder);
+                }
+                return Result.Fail<string>(input, results.Message, results.Expectations);
+            };
+        }
+
         public static Parser<long> Numeric(this Parser<IEnumerable<char>> lhs)
         {
             return from numberString in lhs.String()
